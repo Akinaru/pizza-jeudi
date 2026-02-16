@@ -74,6 +74,42 @@ const supplementsOrder = ['bufala', 'bresaola', 'jambonParme', 'saumon', 'jambon
 let stagedItems = [];
 let builderSelectedPizza = null;
 
+async function requestApi(options = {}) {
+  const apiUrl = new URL('./api.php', window.location.href).toString();
+  let response;
+
+  try {
+    response = await fetch(apiUrl, options);
+  } catch (error) {
+    const details = [
+      `Réseau: impossible d'appeler l'API.`,
+      `URL: ${apiUrl}`,
+      `Page: ${window.location.href}`,
+      `Protocole: ${window.location.protocol}`,
+      `En ligne: ${navigator.onLine ? 'oui' : 'non'}`,
+      `Erreur navigateur: ${error?.message || 'inconnue'}`,
+      `Vérifie PHP actif, HTTPS/HTTP cohérent, et que api.php est accessible.`
+    ].join(' ');
+    throw new Error(details);
+  }
+
+  const rawText = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    const preview = rawText.trim().slice(0, 140).replace(/\s+/g, ' ');
+    throw new Error(`Réponse API non JSON (${response.status})${preview ? `: ${preview}` : ''}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || `Erreur API (${response.status})`);
+  }
+
+  return data;
+}
+
 function formatDate(isoDate) {
   const date = new Date(`${isoDate}T00:00:00`);
   return date.toLocaleDateString('fr-FR', {
@@ -236,11 +272,15 @@ function showSuccessModal(name, count) {
 }
 
 async function loadOrders() {
-  const res = await fetch('./api.php');
-  const data = await res.json();
-  renderOrders(data.orders || []);
-  if (data.reservationDate) {
-    reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
+  try {
+    const data = await requestApi();
+    renderOrders(data.orders || []);
+    if (data.reservationDate) {
+      reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
+    }
+  } catch (error) {
+    renderOrders([]);
+    formMessage.textContent = error.message;
   }
 }
 
@@ -286,27 +326,24 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
-  const res = await fetch('./api.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, items: stagedItems })
-  });
+  try {
+    await requestApi({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, items: stagedItems })
+    });
 
-  if (!res.ok) {
-    formMessage.textContent = 'Erreur enregistrement.';
-    return;
+    document.getElementById('name').value = '';
+    const count = stagedItems.length;
+    stagedItems = [];
+    renderStagedItems();
+    formMessage.textContent = 'Commande enregistrée.';
+    showSuccessModal(name, count);
+    await loadOrders();
+  } catch (error) {
+    formMessage.textContent = error.message;
   }
-
-  document.getElementById('name').value = '';
-  const count = stagedItems.length;
-  stagedItems = [];
-  renderStagedItems();
-  formMessage.textContent = 'Commande enregistrée.';
-  showSuccessModal(name, count);
-  await loadOrders();
 });
 
 renderStagedItems();
-loadOrders().catch(() => {
-  formMessage.textContent = 'API indisponible.';
-});
+loadOrders();
