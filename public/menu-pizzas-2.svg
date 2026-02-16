@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="740" viewBox="0 0 1200 740" role="img" aria-labelledby="title desc">
+  <title id="title">Carte des pizzas partie 2</title>
+  <desc id="desc">Deuxième partie de la carte des pizzas.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffe7cd" />
+      <stop offset="1" stop-color="#ffd2a5" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="740" fill="url(#bg)" />
+  <rect x="40" y="40" width="1120" height="660" rx="24" fill="#fff7ed" stroke="#d08d4a" stroke-width="4" />
+  <text x="600" y="115" text-anchor="middle" font-family="Verdana, sans-serif" font-size="52" font-weight="700" fill="#7a2f10">Carte des Pizzas (2/2)</text>
+
+  <g font-family="Verdana, sans-serif" fill="#2e1d10" font-size="40" font-weight="700">
+    <text x="120" y="210">Salmone</text>
+    <text x="120" y="280">Calabrese</text>
+    <text x="120" y="350">Inferno</text>
+    <text x="120" y="420">4 Formaggi</text>
+    <text x="120" y="490">La Storia</text>
+    <text x="120" y="560">Campana</text>
+    <text x="120" y="630">Genovese</text>
+    <text x="120" y="700">Al Tonno</text>
+  </g>
+</svg>
