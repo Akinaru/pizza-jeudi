@@ -55,71 +55,51 @@ function formatDate(isoDate) {
 
 function renderOrders(orders) {
   ordersList.innerHTML = '';
-
-  if (!orders.length) {
-    const empty = document.createElement('li');
-    empty.textContent = 'Aucune commande pour le moment.';
-    ordersList.appendChild(empty);
-    return;
-  }
-
   const grouped = new Map();
-  pizzaOrder.forEach((pizzaKey) => {
-    grouped.set(pizzaKey, { count: 0, names: [] });
-  });
+
+  pizzaOrder.forEach((key) => grouped.set(key, { count: 0, names: [] }));
 
   orders.forEach((order) => {
     if (!Array.isArray(order.pizzas)) return;
-
     order.pizzas.forEach((pizzaKey) => {
-      const group = grouped.get(pizzaKey);
-      if (!group) return;
-      group.count += 1;
-      group.names.push(order.name);
+      const bucket = grouped.get(pizzaKey);
+      if (!bucket) return;
+      bucket.count += 1;
+      bucket.names.push(order.name);
     });
   });
 
-  let hasAtLeastOneOrder = false;
-
+  let hasOrder = false;
   pizzaOrder.forEach((pizzaKey) => {
-    const group = grouped.get(pizzaKey);
-    if (!group.count) {
-      return;
-    }
+    const bucket = grouped.get(pizzaKey);
+    if (!bucket || bucket.count === 0) return;
+    hasOrder = true;
 
-    hasAtLeastOneOrder = true;
     const li = document.createElement('li');
     li.className = 'order-item';
-    const pizzaLabel = pizzaNames[pizzaKey];
-    const icon = pizzaIcons[pizzaKey] || '🍕';
-    const uniqueNames = [...new Set(group.names)];
+
+    const uniqueNames = [...new Set(bucket.names)].join(', ');
     li.innerHTML = `
-      <div class="order-item-title">${icon} ${pizzaLabel} <span class="order-count">x${group.count}</span></div>
-      <div class="order-item-names">(${uniqueNames.join(', ')})</div>
+      <div class="order-item-title">${pizzaIcons[pizzaKey] || '🍕'} ${pizzaNames[pizzaKey]} <span class="order-count">x${bucket.count}</span></div>
+      <div class="order-item-names">(${uniqueNames})</div>
     `;
+
     ordersList.appendChild(li);
   });
 
-  if (!hasAtLeastOneOrder) {
-    const empty = document.createElement('li');
-    empty.textContent = 'Aucune commande pour le moment.';
-    ordersList.appendChild(empty);
+  if (!hasOrder) {
+    const li = document.createElement('li');
+    li.textContent = 'Aucune commande pour le moment.';
+    ordersList.appendChild(li);
   }
 }
 
 async function loadOrders() {
-  try {
-    const response = await fetch('./api.php');
-    const data = await response.json();
-    renderOrders(data.orders || []);
-
-    if (data.reservationDate) {
-      reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
-    }
-  } catch {
-    reservationDate.textContent = '';
-    formMessage.textContent = '';
-    renderOrders([]);
+  const res = await fetch('./api.php');
+  const data = await res.json();
+  renderOrders(data.orders || []);
+  if (data.reservationDate) {
+    reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
   }
 }
 
@@ -130,26 +110,27 @@ form.addEventListener('submit', async (event) => {
   const name = document.getElementById('name').value.trim();
   const pizzas = Array.from(document.querySelectorAll('input[name="pizzas"]:checked')).map((input) => input.value);
 
-  try {
-    const response = await fetch('./api.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, pizzas })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      formMessage.textContent = data.error || 'Erreur lors de la commande.';
-      return;
-    }
-
-    form.reset();
-    formMessage.textContent = 'Commande enregistrée dans orders.json.';
-    await loadOrders();
-  } catch {
-    formMessage.textContent = 'Impossible d\'enregistrer. Vérifie que PHP est actif.';
+  if (!name || pizzas.length === 0) {
+    formMessage.textContent = 'Nom + au moins 1 pizza.';
+    return;
   }
+
+  const res = await fetch('./api.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, pizzas })
+  });
+
+  if (!res.ok) {
+    formMessage.textContent = 'Erreur enregistrement.';
+    return;
+  }
+
+  form.reset();
+  formMessage.textContent = 'Commande enregistrée.';
+  await loadOrders();
 });
 
-loadOrders();
+loadOrders().catch(() => {
+  formMessage.textContent = 'API indisponible.';
+});
