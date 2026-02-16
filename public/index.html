@@ -28,25 +28,12 @@
           <label for="name">Ton nom</label>
           <input id="name" name="name" type="text" required />
 
-          <fieldset>
-            <legend>Choisis tes pizzas</legend>
-            <label><input type="checkbox" name="pizzas" value="focaccia" /> Focaccia</label>
-            <label><input type="checkbox" name="pizzas" value="margherita" /> Margherita</label>
-            <label><input type="checkbox" name="pizzas" value="napoletana" /> Napoletana</label>
-            <label><input type="checkbox" name="pizzas" value="capricciosa" /> Capricciosa</label>
-            <label><input type="checkbox" name="pizzas" value="rucola" /> Rucola</label>
-            <label><input type="checkbox" name="pizzas" value="vegetariana" /> Vegetariana</label>
-            <label><input type="checkbox" name="pizzas" value="parmigiana" /> Parmigiana</label>
-            <label><input type="checkbox" name="pizzas" value="regina" /> Regina</label>
-            <label><input type="checkbox" name="pizzas" value="salmone" /> Salmone</label>
-            <label><input type="checkbox" name="pizzas" value="calabrese" /> Calabrese</label>
-            <label><input type="checkbox" name="pizzas" value="inferno" /> Inferno</label>
-            <label><input type="checkbox" name="pizzas" value="quattroFormaggi" /> 4 Formaggi</label>
-            <label><input type="checkbox" name="pizzas" value="laStoria" /> La Storia</label>
-            <label><input type="checkbox" name="pizzas" value="campana" /> Campana</label>
-            <label><input type="checkbox" name="pizzas" value="genovese" /> Genovese</label>
-            <label><input type="checkbox" name="pizzas" value="alTonno" /> Al Tonno</label>
-          </fieldset>
+          <div class="builder-bar">
+            <button type="button" id="open-builder-btn">Ajouter une pizza</button>
+            <p class="builder-help">Choix ensuite: calzone + suppléments.</p>
+          </div>
+
+          <div id="selected-items" class="selected-items"></div>
 
           <button type="submit">Valider la commande</button>
           <p id="form-message" class="form-message"></p>
@@ -58,6 +45,39 @@
         <ul id="orders-list" class="orders-list"></ul>
       </section>
     </main>
+
+    <dialog id="builder-modal" class="builder-modal">
+      <div class="builder-modal-content">
+        <p class="builder-kicker">Compose ta pizza</p>
+        <h3 id="builder-title">Choisis une pizza</h3>
+
+        <div id="builder-step-1" class="builder-step"></div>
+
+        <div id="builder-step-2" class="builder-step hidden">
+          <p id="builder-picked" class="builder-picked"></p>
+          <label class="calzone-toggle">
+            <input id="builder-calzone" type="checkbox" />
+            Version calzone
+          </label>
+          <div id="builder-supplements" class="supp-list"></div>
+        </div>
+
+        <div class="builder-actions">
+          <button id="builder-back" type="button" class="ghost-btn hidden">Retour</button>
+          <button id="builder-add" type="button" class="hidden">Ajouter au panier</button>
+          <button id="builder-close" type="button" class="ghost-btn">Fermer</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="success-modal" class="success-modal">
+      <div class="success-modal-content">
+        <p class="success-modal-kicker">Commande validée</p>
+        <h3>Parfait, c'est enregistré</h3>
+        <p id="success-modal-text"></p>
+        <button id="close-modal-btn" type="button">Fermer</button>
+      </div>
+    </dialog>
 
     <script src="./app.js"></script>
   </body>

@@ -6,6 +6,35 @@ if (!file_exists($file)) {
   file_put_contents($file, "[]\n");
 }
 
+$allowedPizzas = [
+  'focaccia',
+  'margherita',
+  'napoletana',
+  'capricciosa',
+  'rucola',
+  'vegetariana',
+  'parmigiana',
+  'regina',
+  'salmone',
+  'calabrese',
+  'inferno',
+  'quattroFormaggi',
+  'laStoria',
+  'campana',
+  'genovese',
+  'alTonno'
+];
+
+$allowedSupplements = [
+  'bufala',
+  'bresaola',
+  'jambonParme',
+  'saumon',
+  'jambonBlanc',
+  'anchois',
+  'bufalanBresaola'
+];
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
@@ -37,12 +66,49 @@ if ($method !== 'POST') {
 
 $payload = json_decode(file_get_contents('php://input') ?: '{}', true);
 $name = trim((string)($payload['name'] ?? ''));
-$pizzas = $payload['pizzas'] ?? [];
+$items = $payload['items'] ?? null;
 
-if ($name === '' || !is_array($pizzas) || count($pizzas) === 0) {
+if ($name === '' || !is_array($items) || count($items) === 0) {
   http_response_code(400);
   echo json_encode(['error' => 'Données invalides']);
   exit;
+}
+
+$normalizedItems = [];
+foreach ($items as $item) {
+  if (!is_array($item)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Données invalides']);
+    exit;
+  }
+
+  $key = (string)($item['key'] ?? '');
+  if (!in_array($key, $allowedPizzas, true)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Pizza invalide']);
+    exit;
+  }
+
+  $calzone = !empty($item['calzone']);
+  $supplements = $item['supplements'] ?? [];
+  if (!is_array($supplements)) {
+    $supplements = [];
+  }
+
+  $cleanSupp = [];
+  foreach ($supplements as $supp) {
+    if (in_array($supp, $allowedSupplements, true)) {
+      $cleanSupp[] = $supp;
+    }
+  }
+
+  $cleanSupp = array_values(array_unique($cleanSupp));
+
+  $normalizedItems[] = [
+    'key' => $key,
+    'calzone' => $calzone,
+    'supplements' => $cleanSupp
+  ];
 }
 
 $fp = fopen($file, 'c+');
@@ -62,7 +128,7 @@ if (!is_array($orders)) {
 $order = [
   'id' => (int)round(microtime(true) * 1000),
   'name' => $name,
-  'pizzas' => array_values($pizzas),
+  'items' => $normalizedItems,
   'createdAt' => gmdate('c')
 ];
 
