@@ -25,25 +25,40 @@
       <section class="panel">
         <h2 class="section-title">Composer ta commande ✨</h2>
         <form id="order-form" class="order-form">
-          <div class="order-layout">
-            <div class="order-controls">
-              <label for="name">Ton nom</label>
-              <input id="name" name="name" type="text" required />
+          <div class="wizard-steps">
+            <div class="wizard-step-item is-active" data-step="1">1. Nom</div>
+            <div class="wizard-step-item" data-step="2">2. Pizzas</div>
+            <div class="wizard-step-item" data-step="3">3. Validation</div>
+          </div>
 
-              <div class="builder-bar">
-                <button type="button" id="open-builder-btn">Ajouter une pizza</button>
-                <p class="builder-help">Choix ensuite: calzone + suppléments.</p>
-              </div>
-
-              <button type="submit">Valider la commande</button>
-              <p id="form-message" class="form-message"></p>
+          <div class="wizard-panel" data-panel="1">
+            <label for="name">Ton nom</label>
+            <input id="name" name="name" type="text" required />
+            <div class="wizard-actions">
+              <button type="button" id="wizard-next-1">Continuer</button>
             </div>
+          </div>
 
-            <aside class="order-cart">
-              <h3 class="order-cart-title">Récap live</h3>
-              <div id="validation-summary" class="validation-summary"></div>
-              <div id="selected-items" class="selected-items"></div>
-            </aside>
+          <div class="wizard-panel hidden" data-panel="2">
+            <div class="builder-bar">
+              <button type="button" id="open-builder-btn" class="secondary-btn">Ajouter une pizza</button>
+              <p class="builder-help">Ajoute toutes les pizzas voulues (calzone + suppléments inclus).</p>
+            </div>
+            <div id="selected-items" class="selected-items"></div>
+            <div id="validation-summary" class="validation-summary"></div>
+            <div class="wizard-actions">
+              <button type="button" id="wizard-back-2" class="ghost-btn">Retour</button>
+              <button type="button" id="wizard-next-2">Vérifier la commande</button>
+            </div>
+          </div>
+
+          <div class="wizard-panel hidden" data-panel="3">
+            <div id="review-summary" class="review-summary"></div>
+            <div class="wizard-actions">
+              <button type="button" id="wizard-back-3" class="ghost-btn">Modifier</button>
+              <button type="submit" id="submit-order-btn">Confirmer la commande</button>
+            </div>
+            <p id="form-message" class="form-message"></p>
           </div>
         </form>
       </section>
@@ -63,6 +78,11 @@
         <div id="builder-step-1" class="builder-step"></div>
 
         <div id="builder-step-2" class="builder-step hidden">
+          <div class="builder-topbar">
+            <button id="builder-back-inline" type="button" class="icon-back-btn" aria-label="Retour">
+              <span aria-hidden="true">←</span>
+            </button>
+          </div>
           <p id="builder-picked" class="builder-picked"></p>
           <label class="calzone-toggle">
             <input id="builder-calzone" type="checkbox" />
@@ -72,7 +92,6 @@
         </div>
 
         <div class="builder-actions">
-          <button id="builder-back" type="button" class="ghost-btn hidden">Retour</button>
           <button id="builder-add" type="button" class="hidden">Ajouter au panier</button>
           <button id="builder-close" type="button" class="ghost-btn">Fermer</button>
         </div>

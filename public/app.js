@@ -5,7 +5,15 @@ const formMessage = document.getElementById('form-message');
 const reservationDate = document.getElementById('reservation-date');
 const selectedItemsBox = document.getElementById('selected-items');
 const validationSummary = document.getElementById('validation-summary');
-const submitButton = form.querySelector('button[type="submit"]');
+const reviewSummary = document.getElementById('review-summary');
+const submitButton = document.getElementById('submit-order-btn');
+
+const wizardStepItems = Array.from(document.querySelectorAll('.wizard-step-item'));
+const wizardPanels = Array.from(document.querySelectorAll('.wizard-panel'));
+const wizardNext1 = document.getElementById('wizard-next-1');
+const wizardNext2 = document.getElementById('wizard-next-2');
+const wizardBack2 = document.getElementById('wizard-back-2');
+const wizardBack3 = document.getElementById('wizard-back-3');
 
 const openBuilderBtn = document.getElementById('open-builder-btn');
 const builderModal = document.getElementById('builder-modal');
@@ -15,7 +23,7 @@ const builderStep2 = document.getElementById('builder-step-2');
 const builderPicked = document.getElementById('builder-picked');
 const builderCalzone = document.getElementById('builder-calzone');
 const builderSupplements = document.getElementById('builder-supplements');
-const builderBackBtn = document.getElementById('builder-back');
+const builderBackInlineBtn = document.getElementById('builder-back-inline');
 const builderAddBtn = document.getElementById('builder-add');
 const builderCloseBtn = document.getElementById('builder-close');
 
@@ -77,6 +85,7 @@ const supplementsOrder = ['bufala', 'bresaola', 'jambonParme', 'saumon', 'jambon
 let stagedItems = [];
 let builderSelectedPizza = null;
 let isLoadingOrders = false;
+let currentWizardStep = 1;
 
 async function requestApi(options = {}) {
   const apiUrl = new URL('./api.php', window.location.href).toString();
@@ -216,7 +225,6 @@ function openBuilderStep1() {
 
   builderStep1.classList.remove('hidden');
   builderStep2.classList.add('hidden');
-  builderBackBtn.classList.add('hidden');
   builderAddBtn.classList.add('hidden');
   builderSelectedPizza = null;
 }
@@ -231,7 +239,6 @@ function openBuilderStep2(pizzaKey) {
 
   builderStep1.classList.add('hidden');
   builderStep2.classList.remove('hidden');
-  builderBackBtn.classList.remove('hidden');
   builderAddBtn.classList.remove('hidden');
 }
 
@@ -247,8 +254,36 @@ function renderValidationSummary() {
     <span class="summary-chip"><strong>${withSupp}</strong> avec suppléments</span>
     <span class="summary-chip"><strong>${calzones}</strong> calzone</span>
   `;
+}
 
-  submitButton.textContent = total > 0 ? `Valider la commande (${total})` : 'Valider la commande';
+function renderReviewSummary() {
+  const name = document.getElementById('name').value.trim();
+  const grouped = groupItems(stagedItems);
+
+  if (!grouped.length) {
+    reviewSummary.innerHTML = '<p class="review-empty">Aucune pizza dans la commande.</p>';
+    submitButton.textContent = 'Confirmer la commande';
+    return;
+  }
+
+  const rows = grouped
+    .map(
+      (item) => `
+        <li>
+          <span>${pizzaIcons[item.key] || '🍕'} ${pizzaNames[item.key]}${item.calzone ? ' (Calzone)' : ''}</span>
+          <span class="review-count">x${item.count}</span>
+          <small>${supplementLabel(item.supplements)}</small>
+        </li>
+      `
+    )
+    .join('');
+
+  reviewSummary.innerHTML = `
+    <p class="review-name">Commande pour <strong>${name || '...'}</strong></p>
+    <ul class="review-list">${rows}</ul>
+  `;
+
+  submitButton.textContent = `Confirmer la commande (${stagedItems.length})`;
 }
 
 function renderStagedItems() {
@@ -257,6 +292,7 @@ function renderStagedItems() {
   if (!stagedItems.length) {
     selectedItemsBox.innerHTML = '<p class="empty-selected">Aucune pizza ajoutée pour le moment.</p>';
     renderValidationSummary();
+    renderReviewSummary();
     return;
   }
 
@@ -272,13 +308,14 @@ function renderStagedItems() {
         <span class="selected-item-count">x${item.count}</span>
       </div>
       <div class="selected-item-sub">+ ${supplementLabel(item.supplements)}</div>
-      <button type="button" class="remove-item" data-group="${itemGroupKey(item)}">Retirer 1</button>
+      <button type="button" class="remove-item-icon" data-group="${itemGroupKey(item)}" aria-label="Retirer une pizza">×</button>
     `;
 
     selectedItemsBox.appendChild(node);
   });
 
   renderValidationSummary();
+  renderReviewSummary();
 }
 
 function collectBuilderItem() {
@@ -347,6 +384,24 @@ function showSuccessModal(name, count) {
   successModal.showModal();
 }
 
+function setWizardStep(step) {
+  currentWizardStep = step;
+
+  wizardStepItems.forEach((item) => {
+    item.classList.toggle('is-active', Number(item.dataset.step) === step);
+  });
+
+  wizardPanels.forEach((panel) => {
+    panel.classList.toggle('hidden', Number(panel.dataset.panel) !== step);
+  });
+
+  if (step === 3) {
+    renderReviewSummary();
+  }
+
+  formMessage.textContent = '';
+}
+
 async function loadOrders() {
   if (isLoadingOrders) return;
   isLoadingOrders = true;
@@ -366,6 +421,27 @@ async function loadOrders() {
   }
 }
 
+wizardNext1.addEventListener('click', () => {
+  const name = document.getElementById('name').value.trim();
+  if (!name) {
+    formMessage.textContent = 'Renseigne ton nom pour continuer.';
+    return;
+  }
+  setWizardStep(2);
+});
+
+wizardBack2.addEventListener('click', () => setWizardStep(1));
+
+wizardNext2.addEventListener('click', () => {
+  if (stagedItems.length === 0) {
+    formMessage.textContent = 'Ajoute au moins une pizza pour continuer.';
+    return;
+  }
+  setWizardStep(3);
+});
+
+wizardBack3.addEventListener('click', () => setWizardStep(2));
+
 openBuilderBtn.addEventListener('click', () => {
   openBuilderStep1();
   builderModal.showModal();
@@ -377,7 +453,7 @@ builderStep1.addEventListener('click', (event) => {
   openBuilderStep2(button.dataset.pizza);
 });
 
-builderBackBtn.addEventListener('click', openBuilderStep1);
+builderBackInlineBtn.addEventListener('click', openBuilderStep1);
 
 builderAddBtn.addEventListener('click', () => {
   if (!builderSelectedPizza) return;
@@ -406,6 +482,11 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   formMessage.textContent = '';
 
+  if (currentWizardStep !== 3) {
+    formMessage.textContent = 'Termine les étapes avant de confirmer.';
+    return;
+  }
+
   const name = document.getElementById('name').value.trim();
   if (!name || stagedItems.length === 0) {
     formMessage.textContent = 'Nom + au moins 1 pizza.';
@@ -423,7 +504,7 @@ form.addEventListener('submit', async (event) => {
     const count = stagedItems.length;
     stagedItems = [];
     renderStagedItems();
-    formMessage.textContent = 'Commande enregistrée.';
+    setWizardStep(1);
     showSuccessModal(name, count);
     await loadOrders();
   } catch (error) {
@@ -432,5 +513,6 @@ form.addEventListener('submit', async (event) => {
 });
 
 renderStagedItems();
+setWizardStep(1);
 loadOrders();
 setInterval(loadOrders, 3000);
