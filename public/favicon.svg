@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Favicon pizza">
+  <rect width="64" height="64" rx="14" fill="#fff3d9"/>
+  <circle cx="32" cy="32" r="28" fill="#ffd447"/>
+  <path d="M32 10 L54 50 L10 50 Z" fill="#f8c27a" stroke="#cf8c43" stroke-width="2"/>
+  <path d="M32 14 L49 46 L15 46 Z" fill="#ff5b2e"/>
+  <circle cx="32" cy="30" r="4" fill="#ffe7ad"/>
+  <circle cx="24" cy="40" r="3.5" fill="#ffe7ad"/>
+  <circle cx="41" cy="39" r="3.5" fill="#ffe7ad"/>
+  <circle cx="29" cy="24" r="2.8" fill="#8f360f"/>
+  <circle cx="38" cy="29" r="2.8" fill="#8f360f"/>
+  <circle cx="35" cy="40" r="2.8" fill="#8f360f"/>
+</svg>
