@@ -15,7 +15,7 @@
       </header>
 
       <section class="panel">
-        <h2 class="section-title">Carte des pizzas</h2>
+        <h2 class="section-title">Carte des pizzas 🍕</h2>
         <div class="menu-images">
           <img src="./carte1.webp" alt="Carte des pizzas partie 1" class="menu-image" />
           <img src="./carte2.webp" alt="Carte des pizzas partie 2" class="menu-image" />
@@ -23,26 +23,33 @@
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Commander</h2>
+        <h2 class="section-title">Composer ta commande ✨</h2>
         <form id="order-form" class="order-form">
-          <label for="name">Ton nom</label>
-          <input id="name" name="name" type="text" required />
+          <div class="order-layout">
+            <div class="order-controls">
+              <label for="name">Ton nom</label>
+              <input id="name" name="name" type="text" required />
 
-          <div class="builder-bar">
-            <button type="button" id="open-builder-btn">Ajouter une pizza</button>
-            <p class="builder-help">Choix ensuite: calzone + suppléments.</p>
+              <div class="builder-bar">
+                <button type="button" id="open-builder-btn">Ajouter une pizza</button>
+                <p class="builder-help">Choix ensuite: calzone + suppléments.</p>
+              </div>
+
+              <button type="submit">Valider la commande</button>
+              <p id="form-message" class="form-message"></p>
+            </div>
+
+            <aside class="order-cart">
+              <h3 class="order-cart-title">Récap live</h3>
+              <div id="validation-summary" class="validation-summary"></div>
+              <div id="selected-items" class="selected-items"></div>
+            </aside>
           </div>
-
-          <div id="selected-items" class="selected-items"></div>
-          <div id="validation-summary" class="validation-summary"></div>
-
-          <button type="submit">Valider la commande</button>
-          <p id="form-message" class="form-message"></p>
         </form>
       </section>
 
       <section class="panel">
-        <h2 class="section-title">Commandes en direct</h2>
+        <h2 class="section-title">Commandes en direct 🚀</h2>
         <p id="orders-summary" class="orders-summary"></p>
         <ul id="orders-list" class="orders-list"></ul>
       </section>
