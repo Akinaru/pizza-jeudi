@@ -4,23 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Réservation Pizza Jeudi</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="container">
-      <h1>Réserver les pizzas pour jeudi</h1>
-      <p id="reservation-date" class="reservation-date"></p>
+      <header class="hero">
+        <p class="hero-kicker">PIZZA NIGHT</p>
+        <h1>Réserver les pizzas pour jeudi</h1>
+        <p id="reservation-date" class="reservation-date"></p>
+      </header>
 
-      <section>
-        <h2>Carte des pizzas</h2>
+      <section class="panel">
+        <h2 class="section-title">Carte des pizzas</h2>
         <div class="menu-images">
-          <img src="/menu-pizzas-1.svg" alt="Carte des pizzas partie 1" class="menu-image" />
-          <img src="/menu-pizzas-2.svg" alt="Carte des pizzas partie 2" class="menu-image" />
+          <img src="./carte1.webp" alt="Carte des pizzas partie 1" class="menu-image" />
+          <img src="./carte2.webp" alt="Carte des pizzas partie 2" class="menu-image" />
         </div>
       </section>
 
-      <section>
-        <h2>Commander</h2>
+      <section class="panel">
+        <h2 class="section-title">Commander</h2>
         <form id="order-form" class="order-form">
           <label for="name">Ton nom</label>
           <input id="name" name="name" type="text" required />
@@ -50,12 +53,12 @@
         </form>
       </section>
 
-      <section>
-        <h2>Commandes en direct</h2>
+      <section class="panel">
+        <h2 class="section-title">Commandes en direct</h2>
         <ul id="orders-list" class="orders-list"></ul>
       </section>
     </main>
 
-    <script src="/app.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>

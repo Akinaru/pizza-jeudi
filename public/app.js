@@ -22,6 +22,25 @@ const pizzaNames = {
   alTonno: 'Al Tonno'
 };
 
+const pizzaIcons = {
+  focaccia: '🍞',
+  margherita: '🍅',
+  napoletana: '🐟',
+  capricciosa: '🍄',
+  rucola: '🥬',
+  vegetariana: '🥕',
+  parmigiana: '🧀',
+  regina: '👑',
+  salmone: '🐠',
+  calabrese: '🌶️',
+  inferno: '🔥',
+  quattroFormaggi: '🧀',
+  laStoria: '⭐',
+  campana: '🍃',
+  genovese: '🌿',
+  alTonno: '🐟'
+};
+
 const pizzaOrder = Object.keys(pizzaNames);
 
 function formatDate(isoDate) {
@@ -60,30 +79,47 @@ function renderOrders(orders) {
     });
   });
 
+  let hasAtLeastOneOrder = false;
+
   pizzaOrder.forEach((pizzaKey) => {
     const group = grouped.get(pizzaKey);
-    const li = document.createElement('li');
-    const pizzaLabel = pizzaNames[pizzaKey];
-
     if (!group.count) {
-      li.textContent = `${pizzaLabel}: 0 commande`;
-      ordersList.appendChild(li);
       return;
     }
 
+    hasAtLeastOneOrder = true;
+    const li = document.createElement('li');
+    li.className = 'order-item';
+    const pizzaLabel = pizzaNames[pizzaKey];
+    const icon = pizzaIcons[pizzaKey] || '🍕';
     const uniqueNames = [...new Set(group.names)];
-    li.textContent = `${pizzaLabel}: ${group.count} commande(s) - ${uniqueNames.join(', ')}`;
+    li.innerHTML = `
+      <div class="order-item-title">${icon} ${pizzaLabel} <span class="order-count">x${group.count}</span></div>
+      <div class="order-item-names">(${uniqueNames.join(', ')})</div>
+    `;
     ordersList.appendChild(li);
   });
+
+  if (!hasAtLeastOneOrder) {
+    const empty = document.createElement('li');
+    empty.textContent = 'Aucune commande pour le moment.';
+    ordersList.appendChild(empty);
+  }
 }
 
 async function loadOrders() {
-  const response = await fetch('/api/orders');
-  const data = await response.json();
-  renderOrders(data.orders || []);
+  try {
+    const response = await fetch('./api.php');
+    const data = await response.json();
+    renderOrders(data.orders || []);
 
-  if (data.reservationDate) {
-    reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
+    if (data.reservationDate) {
+      reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
+    }
+  } catch {
+    reservationDate.textContent = '';
+    formMessage.textContent = '';
+    renderOrders([]);
   }
 }
 
@@ -94,22 +130,26 @@ form.addEventListener('submit', async (event) => {
   const name = document.getElementById('name').value.trim();
   const pizzas = Array.from(document.querySelectorAll('input[name="pizzas"]:checked')).map((input) => input.value);
 
-  const response = await fetch('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, pizzas })
-  });
+  try {
+    const response = await fetch('./api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, pizzas })
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    formMessage.textContent = data.error || 'Erreur lors de la commande.';
-    return;
+    if (!response.ok) {
+      formMessage.textContent = data.error || 'Erreur lors de la commande.';
+      return;
+    }
+
+    form.reset();
+    formMessage.textContent = 'Commande enregistrée dans orders.json.';
+    await loadOrders();
+  } catch {
+    formMessage.textContent = 'Impossible d\'enregistrer. Vérifie que PHP est actif.';
   }
-
-  form.reset();
-  formMessage.textContent = 'Commande enregistrée.';
-  await loadOrders();
 });
 
 loadOrders();
