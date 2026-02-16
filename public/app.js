@@ -1,8 +1,11 @@
 const form = document.getElementById('order-form');
 const ordersList = document.getElementById('orders-list');
+const ordersSummary = document.getElementById('orders-summary');
 const formMessage = document.getElementById('form-message');
 const reservationDate = document.getElementById('reservation-date');
 const selectedItemsBox = document.getElementById('selected-items');
+const validationSummary = document.getElementById('validation-summary');
+const submitButton = form.querySelector('button[type="submit"]');
 
 const openBuilderBtn = document.getElementById('open-builder-btn');
 const builderModal = document.getElementById('builder-modal');
@@ -73,6 +76,7 @@ const supplementsOrder = ['bufala', 'bresaola', 'jambonParme', 'saumon', 'jambon
 
 let stagedItems = [];
 let builderSelectedPizza = null;
+let isLoadingOrders = false;
 
 async function requestApi(options = {}) {
   const apiUrl = new URL('./api.php', window.location.href).toString();
@@ -117,6 +121,71 @@ function formatDate(isoDate) {
     day: '2-digit',
     month: 'long',
     year: 'numeric'
+  });
+}
+
+function normalizeSupplements(input) {
+  if (!Array.isArray(input)) return [];
+
+  const expanded = [];
+  input.forEach((supp) => {
+    if (supp === 'bufalanBresaola') {
+      expanded.push('bufala', 'bresaola');
+      return;
+    }
+    if (supplementsMap[supp]) {
+      expanded.push(supp);
+    }
+  });
+
+  return Array.from(new Set(expanded)).sort();
+}
+
+function itemGroupKey(item) {
+  const supplements = normalizeSupplements(item.supplements);
+  return `${item.key}|${item.calzone ? '1' : '0'}|${supplements.join(',')}`;
+}
+
+function supplementLabel(supplements) {
+  const normalized = normalizeSupplements(supplements);
+  if (!normalized.length) return 'Sans supplément';
+  return normalized.map((supp) => supplementsMap[supp]).join(', ');
+}
+
+function groupItems(items, withNames = false) {
+  const grouped = new Map();
+
+  items.forEach((entry) => {
+    const item = withNames ? entry.item : entry;
+    if (!item || !item.key || !pizzaNames[item.key]) return;
+
+    const normalizedItem = {
+      key: item.key,
+      calzone: Boolean(item.calzone),
+      supplements: normalizeSupplements(item.supplements)
+    };
+
+    const key = itemGroupKey(normalizedItem);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...normalizedItem,
+        count: 0,
+        names: []
+      });
+    }
+
+    const bucket = grouped.get(key);
+    bucket.count += 1;
+    if (withNames && entry.name) {
+      bucket.names.push(entry.name);
+    }
+  });
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    const pizzaSort = pizzaOrder.indexOf(a.key) - pizzaOrder.indexOf(b.key);
+    if (pizzaSort !== 0) return pizzaSort;
+    if (a.calzone !== b.calzone) return a.calzone ? 1 : -1;
+    return a.supplements.join(',').localeCompare(b.supplements.join(','));
   });
 }
 
@@ -166,29 +235,50 @@ function openBuilderStep2(pizzaKey) {
   builderAddBtn.classList.remove('hidden');
 }
 
+function renderValidationSummary() {
+  const total = stagedItems.length;
+  const withSupp = stagedItems.filter((item) => normalizeSupplements(item.supplements).length > 0).length;
+  const calzones = stagedItems.filter((item) => item.calzone).length;
+  const groups = groupItems(stagedItems).length;
+
+  validationSummary.innerHTML = `
+    <span class="summary-chip"><strong>${total}</strong> pizza(s)</span>
+    <span class="summary-chip"><strong>${groups}</strong> variante(s)</span>
+    <span class="summary-chip"><strong>${withSupp}</strong> avec suppléments</span>
+    <span class="summary-chip"><strong>${calzones}</strong> calzone</span>
+  `;
+
+  submitButton.textContent = total > 0 ? `Valider la commande (${total})` : 'Valider la commande';
+}
+
 function renderStagedItems() {
   selectedItemsBox.innerHTML = '';
 
   if (!stagedItems.length) {
     selectedItemsBox.innerHTML = '<p class="empty-selected">Aucune pizza ajoutée pour le moment.</p>';
+    renderValidationSummary();
     return;
   }
 
-  stagedItems.forEach((item, index) => {
+  const grouped = groupItems(stagedItems);
+
+  grouped.forEach((item) => {
     const node = document.createElement('div');
     node.className = 'selected-item';
-    const suppText = item.supplements.length
-      ? item.supplements.map((supp) => supplementsMap[supp]).join(', ')
-      : 'Sans supplément';
 
     node.innerHTML = `
-      <div class="selected-item-main">${pizzaIcons[item.key] || '🍕'} ${pizzaNames[item.key]}${item.calzone ? ' (Calzone)' : ''}</div>
-      <div class="selected-item-sub">+ ${suppText}</div>
-      <button type="button" class="remove-item" data-index="${index}">Retirer</button>
+      <div class="selected-item-main">
+        ${pizzaIcons[item.key] || '🍕'} ${pizzaNames[item.key]}${item.calzone ? ' (Calzone)' : ''}
+        <span class="selected-item-count">x${item.count}</span>
+      </div>
+      <div class="selected-item-sub">+ ${supplementLabel(item.supplements)}</div>
+      <button type="button" class="remove-item" data-group="${itemGroupKey(item)}">Retirer 1</button>
     `;
 
     selectedItemsBox.appendChild(node);
   });
+
+  renderValidationSummary();
 }
 
 function collectBuilderItem() {
@@ -196,70 +286,56 @@ function collectBuilderItem() {
   return {
     key: builderSelectedPizza,
     calzone: builderCalzone.checked,
-    supplements
+    supplements: normalizeSupplements(supplements)
   };
+}
+
+function normalizeOrderItems(order) {
+  if (Array.isArray(order.items)) return order.items;
+  if (Array.isArray(order.pizzas)) {
+    return order.pizzas.map((key) => ({ key, calzone: false, supplements: [] }));
+  }
+  return [];
 }
 
 function renderOrders(orders) {
   ordersList.innerHTML = '';
-  const grouped = new Map();
 
+  const allEntries = [];
   orders.forEach((order) => {
-    const items = Array.isArray(order.items)
-      ? order.items
-      : Array.isArray(order.pizzas)
-        ? order.pizzas.map((key) => ({ key, calzone: false, supplements: [] }))
-        : [];
-
-    items.forEach((item) => {
-      if (!item || !item.key || !pizzaNames[item.key]) return;
-
-      const supplements = Array.isArray(item.supplements)
-        ? item.supplements.filter((supp) => supplementsMap[supp]).sort()
-        : [];
-
-      const groupKey = `${item.key}|${item.calzone ? '1' : '0'}|${supplements.join(',')}`;
-      if (!grouped.has(groupKey)) {
-        grouped.set(groupKey, {
-          key: item.key,
-          calzone: Boolean(item.calzone),
-          supplements,
-          count: 0,
-          names: []
-        });
-      }
-
-      const bucket = grouped.get(groupKey);
-      bucket.count += 1;
-      bucket.names.push(order.name);
+    normalizeOrderItems(order).forEach((item) => {
+      allEntries.push({ item, name: order.name || 'Inconnu' });
     });
   });
 
-  const sortedGroups = Array.from(grouped.values()).sort((a, b) => {
-    return pizzaOrder.indexOf(a.key) - pizzaOrder.indexOf(b.key);
-  });
+  const grouped = groupItems(allEntries, true);
+  const totalPizzas = grouped.reduce((sum, item) => sum + item.count, 0);
+  const withSupp = grouped.reduce((sum, item) => sum + (item.supplements.length ? item.count : 0), 0);
 
-  if (!sortedGroups.length) {
+  ordersSummary.textContent = `${totalPizzas} pizza(s) au total, dont ${withSupp} avec suppléments.`;
+
+  if (!grouped.length) {
     const li = document.createElement('li');
     li.textContent = 'Aucune commande pour le moment.';
     ordersList.appendChild(li);
     return;
   }
 
-  sortedGroups.forEach((group) => {
+  grouped.forEach((group) => {
     const li = document.createElement('li');
     li.className = 'order-item';
-    const supplementsText = group.supplements.length
-      ? group.supplements.map((supp) => supplementsMap[supp]).join(', ')
-      : 'Sans supplément';
+
+    const uniqueNames = [...new Set(group.names)].join(', ');
+    const suppText = supplementLabel(group.supplements);
+    const hasSupp = group.supplements.length > 0;
 
     li.innerHTML = `
       <div class="order-item-title">
         ${pizzaIcons[group.key] || '🍕'} ${pizzaNames[group.key]}${group.calzone ? ' (Calzone)' : ''}
         <span class="order-count">x${group.count}</span>
       </div>
-      <div class="order-item-supp">+ ${supplementsText}</div>
-      <div class="order-item-names">(${[...new Set(group.names)].join(', ')})</div>
+      <div class="order-item-supp ${hasSupp ? 'has-supp' : ''}">${hasSupp ? 'Suppléments:' : ''} ${suppText}</div>
+      <div class="order-item-names">(${uniqueNames})</div>
     `;
 
     ordersList.appendChild(li);
@@ -272,6 +348,9 @@ function showSuccessModal(name, count) {
 }
 
 async function loadOrders() {
+  if (isLoadingOrders) return;
+  isLoadingOrders = true;
+
   try {
     const data = await requestApi();
     renderOrders(data.orders || []);
@@ -279,8 +358,11 @@ async function loadOrders() {
       reservationDate.textContent = `Réservations pour ${formatDate(data.reservationDate)}`;
     }
   } catch (error) {
+    ordersSummary.textContent = '';
     renderOrders([]);
     formMessage.textContent = error.message;
+  } finally {
+    isLoadingOrders = false;
   }
 }
 
@@ -309,9 +391,13 @@ builderCloseBtn.addEventListener('click', () => builderModal.close());
 selectedItemsBox.addEventListener('click', (event) => {
   const btn = event.target.closest('.remove-item');
   if (!btn) return;
-  const index = Number(btn.dataset.index);
-  stagedItems = stagedItems.filter((_, i) => i !== index);
-  renderStagedItems();
+
+  const group = btn.dataset.group;
+  const index = stagedItems.findIndex((item) => itemGroupKey(item) === group);
+  if (index >= 0) {
+    stagedItems.splice(index, 1);
+    renderStagedItems();
+  }
 });
 
 closeModalBtn.addEventListener('click', () => successModal.close());
@@ -347,3 +433,4 @@ form.addEventListener('submit', async (event) => {
 
 renderStagedItems();
 loadOrders();
+setInterval(loadOrders, 3000);

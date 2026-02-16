@@ -150,12 +150,50 @@ input[type='text']:focus {
 }
 
 .selected-item-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-weight: 800;
+}
+
+.selected-item-count {
+  background: #fde0cc;
+  color: #7a2f0f;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 800;
+  font-size: 0.86rem;
 }
 
 .selected-item-sub {
   color: #6f4738;
   font-size: 0.92rem;
+}
+
+.validation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #efc9ac;
+  border-radius: 999px;
+  background: #fff;
+  color: #6a3b29;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.orders-summary {
+  margin: 0 0 10px;
+  color: #6a3b29;
+  font-weight: 700;
 }
 
 .remove-item {
@@ -241,6 +279,11 @@ button:hover {
   margin-top: 6px;
   color: #714838;
   font-size: 0.9rem;
+}
+
+.order-item-supp.has-supp {
+  color: #8f3f1b;
+  font-weight: 700;
 }
 
 .order-item-names {
